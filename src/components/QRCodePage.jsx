@@ -32,9 +32,10 @@ const QRCodeGenerator = () => {
 
         setProfile(profileData);
 
-        // ✅ Use profile.id as owner_id for menu link
-        const localLink = `http://localhost:5173/menu/${profileData.id}`;
-        setMenuUrl(localLink);
+        // ✅ Use deployed URL if exists, fallback to localhost
+        const baseUrl = import.meta.env.VITE_APP_BASE_URL || 'http://localhost:5173';
+        const deployedLink = `${baseUrl}/menu/${profileData.id}`;
+        setMenuUrl(deployedLink);
 
       } catch (err) {
         console.error('Error fetching profile:', err);
