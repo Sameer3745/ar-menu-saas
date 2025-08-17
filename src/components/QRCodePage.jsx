@@ -33,7 +33,7 @@ const QRCodeGenerator = () => {
         setProfile(profileData);
 
         // ✅ Use deployed URL if exists, fallback to localhost
-        const baseUrl = import.meta.env.VITE_APP_BASE_URL || 'http://localhost:5173';
+        const baseUrl = 'http://localhost:5173';
         const deployedLink = `${baseUrl}/menu/${profileData.id}`;
         setMenuUrl(deployedLink);
 

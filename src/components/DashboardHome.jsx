@@ -63,28 +63,28 @@ export default function DashboardHome() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-4 text-black">Dashboard</h2>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-lg shadow-sm border bg-purple-50 text-purple-700">
-          <div className="text-2xl">📦</div>
+          <div className="text-2xl"></div>
           <div className="text-lg font-semibold">{totalOrders}</div>
           <div className="text-sm">Today's Orders</div>
         </div>
 
         <div className="p-4 rounded-lg shadow-sm border bg-green-50 text-green-700">
-          <div className="text-2xl">💰</div>
+          <div className="text-2xl"></div>
           <div className="text-lg font-semibold">₹{totalRevenue.toFixed(2)}</div>
           <div className="text-sm">Total Revenue</div>
         </div>
 
         <div className="p-4 rounded-lg shadow-sm border bg-blue-50 text-blue-700">
-          <div className="text-2xl">👥</div>
+          <div className="text-2xl"></div>
           <div className="text-lg font-semibold">{activeCustomersCount}</div>
           <div className="text-sm">Active Customers</div>
         </div>
 
         <div className="p-4 rounded-lg shadow-sm border bg-yellow-50 text-yellow-700">
-          <div className="text-2xl">🍕</div>
+          <div className="text-2xl"></div>
           <div className="text-lg font-semibold">{bestSellerName}</div>
           <div className="text-sm">Best Seller</div>
         </div>

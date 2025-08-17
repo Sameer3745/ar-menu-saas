@@ -1,10 +1,8 @@
  import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-
-// Pages
-import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PublicMenu from "./pages/PublicMenu"; // Public menu page
+import LandingPage from "./pages/LandingPage"; // Assuming you have this page
 
 // Dashboard child components
 import MenuManagement from "./components/MenuManagement";
@@ -12,8 +10,6 @@ import Orders from "./components/Orders";
 import Analytics from "./components/Analytics";
 import QRCodePage from "./components/QRCodePage";
 import Settings from "./components/Settings";
-import Subscription from "./components/Subscription";
-import Promotions from "./components/Promotions";
 
 export default function App() {
   return (
@@ -34,8 +30,6 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="qrcode" element={<QRCodePage />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="subscription" element={<Subscription />} />
-          <Route path="promotions" element={<Promotions />} />
         </Route>
 
         {/* 404 fallback */}

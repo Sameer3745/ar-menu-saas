@@ -1,8 +1,8 @@
-  import { useEffect, useState } from 'react'
+ import { useEffect, useState } from 'react'
 import { useNavigate, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import DashboardHome from '../components/DashboardHome'  // <-- Import yahan kiya
-
+import DashboardHome from '../components/DashboardHome'
+import MenuManagement from '../components/MenuManagement'
 import {
   Menu as MenuIcon,
   User,
@@ -14,8 +14,6 @@ import {
   Utensils,
   ShoppingCart,
   Settings,
-  CreditCard,
-  Megaphone,
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -58,10 +56,6 @@ export default function Dashboard() {
         return '/dashboard/qrcode'
       case 'Settings':
         return '/dashboard/settings'
-      case 'Subscription':
-        return '/dashboard/subscription'
-      case 'Promotions':
-        return '/dashboard/promotions'
       default:
         return '/dashboard'
     }
@@ -76,7 +70,7 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.full_name || user?.email || 'User'
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen min-h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <aside
         className={`${
@@ -93,7 +87,8 @@ export default function Dashboard() {
             <MenuIcon className="w-6 h-6 text-black" />
           </button>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
+
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {[
             { icon: <Home />, label: 'Overview' },
             { icon: <Utensils />, label: 'Menu Management' },
@@ -101,8 +96,6 @@ export default function Dashboard() {
             { icon: <BarChart3 />, label: 'Analytics' },
             { icon: <QrCode />, label: 'QR Code' },
             { icon: <Settings />, label: 'Settings' },
-            { icon: <CreditCard />, label: 'Subscription' },
-            { icon: <Megaphone />, label: 'Promotions' },
           ].map((item, i) => {
             const path = routePathForLabel(item.label)
             const isActive = location.pathname === path
@@ -123,14 +116,29 @@ export default function Dashboard() {
               </button>
             )
           })}
+
+          {/* Profile + Logout */}
+          <div className="mt-auto pt-2 border-t space-y-2">
+            <div className="flex items-center gap-2 p-2">
+              <User className="w-5 h-5 text-black" />
+              {sidebarOpen && <span className="text-sm font-medium text-black">{displayName}</span>}
+            </div>
+            {sidebarOpen && (
+              <button
+                onClick={handleLogout}
+                className="w-full bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 text-sm transition"
+              >
+                Logout
+              </button>
+            )}
+          </div>
         </nav>
       </aside>
 
       {/* Main Section */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Navbar */}
-        <header className="bg-white shadow px-4 py-3 flex items-center justify-between border-b">
-          {/* Left: Search */}
+        <header className="bg-white shadow px-4 py-3 flex items-center justify-between border-b flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative">
               <input
@@ -142,7 +150,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right: Actions */}
+          {/* Notification bell stays top right */}
           <div className="flex items-center gap-4">
             <button className="relative p-2 rounded-full bg-white hover:bg-gray-100">
               <Bell className="w-5 h-5 text-black" />
@@ -150,23 +158,23 @@ export default function Dashboard() {
                 3
               </span>
             </button>
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-black" />
-              <span className="text-sm font-medium text-black">{displayName}</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 text-sm transition"
-            >
-              Logout
-            </button>
           </div>
         </header>
 
         {/* Content */}
         <main className="p-6 space-y-6 overflow-y-auto flex-1 bg-gray-100">
-          {/* Agar path /dashboard hai toh DashboardHome dikhao, warna child routes Outlet dikhao */}
-          {location.pathname === '/dashboard' ? <DashboardHome /> : <Outlet />}
+          {location.pathname === '/dashboard' ? (
+            <DashboardHome />
+          ) : location.pathname === '/dashboard/menu' ? (
+            <div className="space-y-6">
+              <MenuManagement />
+              <div className="max-h-96 overflow-y-auto border rounded bg-white shadow">
+                {/* Add New Dish Table */}
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>
