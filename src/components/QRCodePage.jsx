@@ -33,7 +33,7 @@ const QRCodeGenerator = () => {
         setProfile(profileData);
 
         // ✅ Use deployed URL if exists, fallback to localhost
-        const baseUrl = 'http://localhost:5173';
+        const baseUrl = 'https://ar-menu-saas.vercel.app';
         const deployedLink = `${baseUrl}/menu/${profileData.id}`;
         setMenuUrl(deployedLink);
 
