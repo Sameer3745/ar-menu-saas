@@ -7,9 +7,7 @@ import {
   Menu as MenuIcon,
   User,
   Bell,
-  Search,
   QrCode,
-  BarChart3,
   Home,
   Utensils,
   ShoppingCart,
@@ -20,9 +18,13 @@ export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [newOrdersCount, setNewOrdersCount] = useState(0)
+  const [recentOrders, setRecentOrders] = useState([])
+  const [showNotificationBox, setShowNotificationBox] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Check user session
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser()
@@ -35,6 +37,28 @@ export default function Dashboard() {
     }
     getUser()
   }, [navigate])
+
+  // Realtime subscription for new orders
+  useEffect(() => {
+    const subscription = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          setNewOrdersCount((prev) => prev + 1)
+          setRecentOrders((prev) => [
+            { id: payload.new.id, customer_name: payload.new.customer_name },
+            ...prev,
+          ])
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(subscription)
+    }
+  }, [])
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -50,8 +74,6 @@ export default function Dashboard() {
         return '/dashboard/menu'
       case 'Orders':
         return '/dashboard/orders'
-      case 'Analytics':
-        return '/dashboard/analytics'
       case 'QR Code':
         return '/dashboard/qrcode'
       case 'Settings':
@@ -78,7 +100,7 @@ export default function Dashboard() {
         } bg-white shadow-lg flex flex-col transition-all duration-300 border-r`}
       >
         <div className="flex items-center justify-between p-4 border-b bg-white">
-          {sidebarOpen && <h2 className="text-xl font-bold text-black">AR Menu</h2>}
+          {sidebarOpen && <h2 className="text-xl font-bold text-black">Sidebar</h2>}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded hover:bg-gray-200 bg-white"
@@ -93,7 +115,6 @@ export default function Dashboard() {
             { icon: <Home />, label: 'Overview' },
             { icon: <Utensils />, label: 'Menu Management' },
             { icon: <ShoppingCart />, label: 'Orders' },
-            { icon: <BarChart3 />, label: 'Analytics' },
             { icon: <QrCode />, label: 'QR Code' },
             { icon: <Settings />, label: 'Settings' },
           ].map((item, i) => {
@@ -138,26 +159,46 @@ export default function Dashboard() {
       {/* Main Section */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top Navbar */}
-        <header className="bg-white shadow px-4 py-3 flex items-center justify-between border-b flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search menu..."
-                className="border rounded-lg pl-8 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-black"
-              />
-              <Search className="w-4 h-4 absolute left-2 top-2.5 text-black" />
-            </div>
+        <header className="bg-white shadow px-4 py-3 flex items-center justify-between border-b flex-shrink-0 relative">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-black">
+              AR Menu...
+            </h1>
+            <span className="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
           </div>
 
-          {/* Notification bell stays top right */}
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 rounded-full bg-white hover:bg-gray-100">
+          {/* Notification bell */}
+          <div className="flex items-center gap-4 relative">
+            <button
+              className="relative p-2 rounded-full bg-white hover:bg-gray-100"
+              onClick={() => {
+                setShowNotificationBox(!showNotificationBox)
+                setNewOrdersCount(0) // reset count on click
+                if (!showNotificationBox) setRecentOrders([]) // clear orders when opening
+              }}
+            >
               <Bell className="w-5 h-5 text-black" />
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                3
-              </span>
+              {newOrdersCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {newOrdersCount}
+                </span>
+              )}
             </button>
+
+            {/* Notification dropdown */}
+            {showNotificationBox && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border shadow-lg rounded-md p-2 z-50">
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order) => (
+                    <div key={order.id} className="text-sm text-black border-b last:border-b-0 py-1">
+                      New order received: {order.customer_name}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-black py-1">No orders</div>
+                )}
+              </div>
+            )}
           </div>
         </header>
 

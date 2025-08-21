@@ -8,9 +8,19 @@ export default function DashboardHome() {
   useEffect(() => {
     async function fetchOrders() {
       setLoading(true)
+
+      // आज की date range
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
+      const todayEnd = new Date()
+      todayEnd.setHours(23, 59, 59, 999)
+
       const { data: ordersData, error } = await supabase
         .from('orders')
         .select('id, customer_name, items, amount, status, created_at')
+        .gte('created_at', todayStart.toISOString())
+        .lte('created_at', todayEnd.toISOString())
+
       if (error) {
         console.error('Error fetching orders:', error)
       } else {
@@ -32,10 +42,7 @@ export default function DashboardHome() {
   // Active Customers (unique customer_name)
   const activeCustomersCount = new Set(orders.map(order => order.customer_name)).size
 
-  // Best Seller calculation (items column me se item count)
-  // Assume items column is a string like: "Margherita Pizza, Veggie Burger"
-  // Ya ho sakta hai JSON array — us hisaab se adjust karna
-
+  // Best Seller calculation
   const itemCountMap = {}
   orders.forEach(order => {
     let itemsList = []
@@ -47,8 +54,11 @@ export default function DashboardHome() {
       // If not JSON, assume comma separated string
       itemsList = order.items ? order.items.split(',').map(i => i.trim()) : []
     }
+
     itemsList.forEach(item => {
-      itemCountMap[item] = (itemCountMap[item] || 0) + 1
+      // अगर item object है तो उसका name लें
+      const itemName = typeof item === 'object' && item.name ? item.name : item
+      itemCountMap[itemName] = (itemCountMap[itemName] || 0) + 1
     })
   })
 
@@ -74,7 +84,7 @@ export default function DashboardHome() {
         <div className="p-4 rounded-lg shadow-sm border bg-green-50 text-green-700">
           <div className="text-2xl"></div>
           <div className="text-lg font-semibold">₹{totalRevenue.toFixed(2)}</div>
-          <div className="text-sm">Total Revenue</div>
+          <div className="text-sm">Today's Total Earnings</div>
         </div>
 
         <div className="p-4 rounded-lg shadow-sm border bg-blue-50 text-blue-700">

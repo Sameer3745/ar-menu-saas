@@ -8,8 +8,8 @@ const QRCodeGenerator = () => {
   const [menuUrl, setMenuUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [restaurantName, setRestaurantName] = useState(''); // ✅ Added
 
-  // 1️⃣ Fetch profile
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -19,22 +19,11 @@ const QRCodeGenerator = () => {
           return;
         }
 
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .eq('id', user.id)
-          .single();
+        setProfile(user);
 
-        if (profileError || !profileData) {
-          setErrorMsg('Failed to load profile.');
-          return;
-        }
-
-        setProfile(profileData);
-
-        // ✅ Use deployed URL if exists, fallback to localhost
+        // Base URL for menu page
         const baseUrl = 'https://ar-menu-saas.vercel.app';
-        const deployedLink = `${baseUrl}/menu/${profileData.id}`;
+        const deployedLink = `${baseUrl}/menu/${user.id}`;
         setMenuUrl(deployedLink);
 
       } catch (err) {
@@ -45,10 +34,13 @@ const QRCodeGenerator = () => {
     fetchProfile();
   }, []);
 
-  // 2️⃣ Generate QR without storage
   const generateQR = async () => {
     if (!profile || !menuUrl) {
       setErrorMsg('Profile or menu URL not loaded.');
+      return;
+    }
+    if (!restaurantName.trim()) {
+      setErrorMsg('Please enter your restaurant name.');
       return;
     }
 
@@ -56,7 +48,9 @@ const QRCodeGenerator = () => {
     setErrorMsg('');
 
     try {
-      const qrDataUrl = await QRCode.toDataURL(menuUrl);
+      // Append restaurant name as query param
+      const urlWithName = `${menuUrl}?restaurant=${encodeURIComponent(restaurantName)}`;
+      const qrDataUrl = await QRCode.toDataURL(urlWithName);
       setQrUrl(qrDataUrl);
     } catch (error) {
       console.error('QR Generation Error:', error);
@@ -66,7 +60,6 @@ const QRCodeGenerator = () => {
     }
   };
 
-  // 3️⃣ Download QR as PNG
   const downloadQR = () => {
     if (!qrUrl) return;
     const a = document.createElement('a');
@@ -83,6 +76,15 @@ const QRCodeGenerator = () => {
 
       {errorMsg && <p className="mb-4 text-red-600 font-medium text-center">{errorMsg}</p>}
 
+      {/* ✅ Restaurant Name Input */}
+      <input
+        type="text"
+        placeholder="Enter Restaurant Name"
+        value={restaurantName}
+        onChange={(e) => setRestaurantName(e.target.value)}
+       className="w-full border p-2 rounded mb-4 text-black bg-white"
+       />
+
       {qrUrl ? (
         <div className="text-center space-y-4">
           <img src={qrUrl} alt="Generated QR Code" className="mx-auto w-48 h-48 rounded-lg shadow-lg" />
@@ -97,7 +99,7 @@ const QRCodeGenerator = () => {
           <div className="mt-4">
             <p className="text-gray-700 mb-2 font-semibold">Shareable Menu Link:</p>
             <a href={menuUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline break-all">
-              {menuUrl}
+              {menuUrl}?restaurant={encodeURIComponent(restaurantName)}
             </a>
           </div>
 
