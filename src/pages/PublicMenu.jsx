@@ -25,6 +25,8 @@ export default function PublicMenu() {
   const [quantity, setQuantity] = useState(1);
   const [tableNo, setTableNo] = useState("");
   const [userName, setUserName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(""); // ✅ New state for email
   const [selectedPayment, setSelectedPayment] = useState("");
 
   useEffect(() => {
@@ -100,10 +102,17 @@ export default function PublicMenu() {
     setCart(cart.filter((item) => item.id !== id));
   };
 
-  const totalBill = cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + (cart.length ? 50 : 0);
+  const totalBill =
+    cart.reduce((sum, item) => sum + item.price * item.quantity, 0) +
+    (cart.length ? 50 : 0);
 
-  // Check if Order Now button should be enabled
-  const isOrderEnabled = userName.trim() !== "" && tableNo.trim() !== "" && selectedPayment && cart.length > 0;
+  const isOrderEnabled =
+    userName.trim() !== "" &&
+    customerEmail.trim() !== "" && // ✅ Email required
+    tableNo.trim() !== "" &&
+    customerPhone.trim().length >= 10 &&
+    selectedPayment &&
+    cart.length > 0;
 
   const placeOrder = async () => {
     if (!isOrderEnabled) return;
@@ -111,6 +120,8 @@ export default function PublicMenu() {
     const orderData = {
       owner_id: profileId,
       customer_name: userName.trim(),
+      customer_email: customerEmail.trim(), // ✅ Save email in DB
+      customer_phone: customerPhone.trim(),
       items: JSON.stringify(cart),
       amount: totalBill,
       status: "pending",
@@ -118,19 +129,22 @@ export default function PublicMenu() {
       payment_method: selectedPayment,
     };
 
-    const { data, error } = await supabase.from("orders").insert([orderData]);
+    const { error } = await supabase.from("orders").insert([orderData]);
 
     if (error) {
       alert("Failed to place order. Please try again.");
       console.error(error);
-    } else {
-      alert("Order placed successfully!");
-      setCart([]);
-      setShowCart(false);
-      setUserName("");
-      setTableNo("");
-      setSelectedPayment("");
+      return;
     }
+
+    alert("Order placed successfully!");
+    setCart([]);
+    setShowCart(false);
+    setUserName("");
+    setCustomerEmail(""); // ✅ Reset email
+    setTableNo("");
+    setCustomerPhone("");
+    setSelectedPayment("");
   };
 
   return (
@@ -151,7 +165,8 @@ export default function PublicMenu() {
           AR MENU
         </h1>
         <p className="text-center text-lg text-gray-200 mb-6">
-          Tap on any item to view its <span className="text-yellow-400 font-semibold">real-world 3D model</span> in AR.
+          Tap on any item to view its{" "}
+          <span className="text-yellow-400 font-semibold">real-world 3D model</span> in AR.
         </p>
         <hr className="border-t-2 border-dotted border-gray-400 mb-6" />
 
@@ -171,7 +186,10 @@ export default function PublicMenu() {
         </div>
 
         {sortedCategories.map((category) => (
-          <div key={category} className="mb-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-lg">
+          <div
+            key={category}
+            className="mb-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-lg"
+          >
             <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-yellow-400 border-b-2 border-yellow-400 inline-block pb-1">
               {category}
             </h2>
@@ -219,7 +237,9 @@ export default function PublicMenu() {
         {selectedModel && (
           <div
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-            onClick={(e) => { if (e.target === e.currentTarget) setSelectedModel(null); }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedModel(null);
+            }}
           >
             <div className="bg-white rounded-2xl p-4 w-[90%] h-[80%] relative flex flex-col sm:flex-row">
               <model-viewer
@@ -239,9 +259,19 @@ export default function PublicMenu() {
                   Close
                 </button>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setQuantity(q => Math.max(1,q-1))} className="bg-gray-300 text-black px-3 py-1 rounded">-</button>
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="bg-gray-300 text-black px-3 py-1 rounded"
+                  >
+                    -
+                  </button>
                   <span className="text-black font-bold">{quantity}</span>
-                  <button onClick={() => setQuantity(q => q+1)} className="bg-gray-300 text-black px-3 py-1 rounded">+</button>
+                  <button
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="bg-gray-300 text-black px-3 py-1 rounded"
+                  >
+                    +
+                  </button>
                 </div>
                 <button
                   className="bg-green-600 text-white px-4 py-2 rounded font-bold"
@@ -260,7 +290,14 @@ export default function PublicMenu() {
             <div className="bg-white rounded-2xl p-6 w-full max-w-[700px] max-h-[90vh] overflow-y-auto relative">
               <button
                 className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded"
-                onClick={() => { setShowCart(false); setSelectedPayment(""); setUserName(""); setTableNo(""); }}
+                onClick={() => {
+                  setShowCart(false);
+                  setSelectedPayment("");
+                  setUserName("");
+                  setCustomerEmail("");
+                  setTableNo("");
+                  setCustomerPhone("");
+                }}
               >
                 Close
               </button>
@@ -305,14 +342,28 @@ export default function PublicMenu() {
                   </div>
 
                   <p className="text-black">Platform Fee: ₹50</p>
-                  <h3 className="text-xl font-bold text-black mt-2">Total: ₹{totalBill}</h3>
+                  <h3 className="text-xl font-bold text-black mt-2">
+                    Total: ₹{totalBill}
+                  </h3>
 
+                  {/* User Details */}
                   <div className="mt-4">
                     <input
                       type="text"
                       placeholder="Enter Your Name"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
+                      className="w-full border p-2 rounded bg-white text-black"
+                    />
+                  </div>
+
+                  {/* ✅ Email input */}
+                  <div className="mt-4">
+                    <input
+                      type="email"
+                      placeholder="Enter Your Email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
                       className="w-full border p-2 rounded bg-white text-black"
                     />
                   </div>
@@ -327,6 +378,17 @@ export default function PublicMenu() {
                     />
                   </div>
 
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      placeholder="Enter Your Phone Number"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full border p-2 rounded bg-white text-black"
+                    />
+                  </div>
+
+                  {/* Payment */}
                   <div className="mt-4 flex flex-col gap-2">
                     <label className="flex items-center gap-2 text-black">
                       <input
@@ -367,7 +429,9 @@ export default function PublicMenu() {
 
                   <button
                     className={`mt-4 py-2 px-4 rounded font-bold shadow-lg w-full ${
-                      isOrderEnabled ? "bg-blue-600 text-white" : "bg-gray-400 text-black cursor-not-allowed"
+                      isOrderEnabled
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-400 text-black cursor-not-allowed"
                     }`}
                     disabled={!isOrderEnabled}
                     onClick={placeOrder}

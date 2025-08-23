@@ -70,7 +70,17 @@ export default function MenuManagement() {
     setLoading(true);
     setErrorMsg("");
     try {
-      const { data, error } = await supabase.from("menu_items").select("*").order("id", { ascending: false });
+      // ✅ Only fetch current user's items
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*")
+        .eq("owner_id", user.id) // 👈 Fix applied here
+        .order("id", { ascending: false });
+
       if (error) setErrorMsg("Failed to load menu items: " + error.message);
       else setMenuItems(data || []);
     } catch (err) {

@@ -7,7 +7,6 @@ import LandingPage from "./pages/LandingPage"; // Assuming you have this page
 // Dashboard child components
 import MenuManagement from "./components/MenuManagement";
 import Orders from "./components/Orders";
-import Analytics from "./components/Analytics";
 import QRCodePage from "./components/QRCodePage";
 import Settings from "./components/Settings";
 
@@ -27,7 +26,6 @@ export default function App() {
           <Route index element={null} /> {/* Default dashboard home */}
           <Route path="menu" element={<MenuManagement />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="analytics" element={<Analytics />} />
           <Route path="qrcode" element={<QRCodePage />} />
           <Route path="settings" element={<Settings />} />
         </Route>

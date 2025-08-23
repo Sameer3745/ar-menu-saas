@@ -1,4 +1,4 @@
- import React, { useEffect, useState } from "react";
+  import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Orders() {
@@ -179,6 +179,12 @@ export default function Orders() {
             </p>
             <p>
               <span className="font-semibold">Table No:</span> {selectedOrder.table_no}
+            </p>
+            <p>
+              <span className="font-semibold">Customer Email:</span> {selectedOrder.customer_email || "-"}
+            </p>
+            <p>
+              <span className="font-semibold">Customer Phone:</span> {selectedOrder.customer_phone || "-"}
             </p>
 
             {/* Items Table */}
