@@ -70,7 +70,6 @@ export default function MenuManagement() {
     setLoading(true);
     setErrorMsg("");
     try {
-      // ✅ Only fetch current user's items
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -78,7 +77,7 @@ export default function MenuManagement() {
       const { data, error } = await supabase
         .from("menu_items")
         .select("*")
-        .eq("owner_id", user.id) // 👈 Fix applied here
+        .eq("owner_id", user.id)
         .order("id", { ascending: false });
 
       if (error) setErrorMsg("Failed to load menu items: " + error.message);
@@ -137,23 +136,8 @@ export default function MenuManagement() {
     return data.path;
   }
 
-  // -------- Handle Model Upload --------
   async function handleModelUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const path = await uploadFile(file, "menu-models");
-      const { data } = supabase.storage.from("menu-models").getPublicUrl(path);
-      setNewDish((prev) => ({
-        ...prev,
-        model: file,
-        model_url: path,
-        modelPreview: data?.publicUrl || null,
-      }));
-      setSuccessMsg("3D Model uploaded successfully!");
-    } catch (err) {
-      setErrorMsg("Failed to upload 3D Model.");
-    }
+    // Disabled now, so nothing happens
   }
 
   async function handleDeleteModel() {
@@ -331,35 +315,11 @@ export default function MenuManagement() {
               className="border rounded p-3 w-full bg-white text-black border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
-            {/* Big 3D Model Upload Box */}
-            <div className="mt-4 border-2 border-dashed border-blue-500 rounded-lg p-6 flex flex-col items-center justify-center bg-blue-50">
-              {newDish.modelPreview ? (
-                <div className="flex flex-col items-center">
-                  <model-viewer
-                    src={newDish.modelPreview}
-                    alt="3D Model Preview"
-                    auto-rotate
-                    camera-controls
-                    style={{ width: "200px", height: "200px" }}
-                  />
-                  <button
-                    onClick={handleDeleteModel}
-                    className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Delete 3D Model
-                  </button>
-                </div>
-              ) : (
-                <label className="cursor-pointer flex flex-col items-center justify-center text-blue-600">
-                  <span className="text-lg font-medium">Upload 3D Model</span>
-                  <input
-                    type="file"
-                    accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-                    onChange={handleModelUpload}
-                    className="hidden"
-                  />
-                </label>
-              )}
+            {/* Big 3D Model Upload Box - Disabled and Coming Soon */}
+            <div className="mt-4 border-2 border-dashed border-blue-500 rounded-lg p-6 flex flex-col items-center justify-center bg-blue-50 cursor-not-allowed">
+              <span className="text-lg font-medium text-blue-600">
+                 Upload 3D Model <span className="text-green-800">(Coming Soon..)</span>
+                 </span>
             </div>
           </div>
 

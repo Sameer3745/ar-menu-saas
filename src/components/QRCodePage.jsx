@@ -22,7 +22,7 @@ const QRCodeGenerator = () => {
         setProfile(user);
 
         // Base URL for menu page
-        const baseUrl = 'https://ar-menu-saas.vercel.app';
+        const baseUrl = 'http://localhost:5173';
         const deployedLink = `${baseUrl}/menu/${user.id}`;
         setMenuUrl(deployedLink);
 
@@ -30,7 +30,7 @@ const QRCodeGenerator = () => {
         console.error('Error fetching profile:', err);
         setErrorMsg('Failed to fetch profile.');
       }
-    };
+    }
     fetchProfile();
   }, []);
 

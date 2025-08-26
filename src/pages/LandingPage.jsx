@@ -177,7 +177,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-black/70 py-6 text-center text-white font-semibold relative z-10 border-t border-white/20">
-        Made with <span role="img" aria-label="love">❤️</span> by Sameer &mdash; AR Menu SaaS &copy; {new Date().getFullYear()}
+        Made with <span role="img" aria-label="love">❤️</span> by Saas Team &mdash; AR Menu &copy; {new Date().getFullYear()}
       </footer>
     </div>
   );

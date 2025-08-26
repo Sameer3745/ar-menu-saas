@@ -26,8 +26,9 @@ export default function PublicMenu() {
   const [tableNo, setTableNo] = useState("");
   const [userName, setUserName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState(""); // ✅ New state for email
+  const [customerEmail, setCustomerEmail] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -42,17 +43,9 @@ export default function PublicMenu() {
 
         if (error) throw error;
 
-        const sampleModels = [
-          "https://modelviewer.dev/shared-assets/models/Astronaut.glb",
-          "https://modelviewer.dev/shared-assets/models/ShopifyModels/Chair.glb",
-          "https://modelviewer.dev/shared-assets/models/ShopifyModels/Camera.glb",
-          "https://modelviewer.dev/shared-assets/models/ShopifyModels/Plant.glb",
-          "https://modelviewer.dev/shared-assets/models/ShopifyModels/Pepper.glb",
-        ];
-
-        const withModels = (data || []).map((item, index) => ({
+        const withModels = (data || []).map((item) => ({
           ...item,
-          url: sampleModels[index % sampleModels.length],
+          url: item.image_url, // Supabase image path fetch
         }));
 
         setMenuItems(withModels);
@@ -102,28 +95,26 @@ export default function PublicMenu() {
     setCart(cart.filter((item) => item.id !== id));
   };
 
-  const totalBill =
-    cart.reduce((sum, item) => sum + item.price * item.quantity, 0) +
-    (cart.length ? 50 : 0);
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const platformFee = cart.length ? 50 : 0;
+  const grandTotal = itemsTotal + platformFee;
 
   const isOrderEnabled =
     userName.trim() !== "" &&
-    customerEmail.trim() !== "" && // ✅ Email required
+    customerEmail.trim() !== "" &&
     tableNo.trim() !== "" &&
     customerPhone.trim().length >= 10 &&
     selectedPayment &&
     cart.length > 0;
 
   const placeOrder = async () => {
-    if (!isOrderEnabled) return;
-
     const orderData = {
       owner_id: profileId,
       customer_name: userName.trim(),
-      customer_email: customerEmail.trim(), // ✅ Save email in DB
+      customer_email: customerEmail.trim(),
       customer_phone: customerPhone.trim(),
       items: JSON.stringify(cart),
-      amount: totalBill,
+      amount: itemsTotal,
       status: "pending",
       table_no: tableNo.trim(),
       payment_method: selectedPayment,
@@ -141,10 +132,21 @@ export default function PublicMenu() {
     setCart([]);
     setShowCart(false);
     setUserName("");
-    setCustomerEmail(""); // ✅ Reset email
+    setCustomerEmail("");
     setTableNo("");
     setCustomerPhone("");
     setSelectedPayment("");
+    setStep(1);
+  };
+
+  const handleContinue = () => {
+    if (!isOrderEnabled) return;
+    setStep(2);
+  };
+
+  const handlePayment = () => {
+    alert(`Payment of ₹${grandTotal} via ${selectedPayment} successful!`);
+    placeOrder();
   };
 
   return (
@@ -165,8 +167,7 @@ export default function PublicMenu() {
           AR MENU
         </h1>
         <p className="text-center text-lg text-gray-200 mb-6">
-          Tap on any item to view its{" "}
-          <span className="text-yellow-400 font-semibold">real-world 3D model</span> in AR.
+          Tap on any item to view its <span className="text-yellow-400 font-semibold">preview</span>.
         </p>
         <hr className="border-t-2 border-dotted border-gray-400 mb-6" />
 
@@ -214,7 +215,7 @@ export default function PublicMenu() {
                         className="hover:bg-white/10 transition text-sm sm:text-base cursor-pointer"
                         onClick={() => setSelectedModel(item)}
                       >
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-4 relative">
                           <img
                             src={imgData?.publicUrl || "/placeholder.png"}
                             alt={item.name}
@@ -242,22 +243,24 @@ export default function PublicMenu() {
             }}
           >
             <div className="bg-white rounded-2xl p-4 w-[90%] h-[80%] relative flex flex-col sm:flex-row">
-              <model-viewer
-                src={selectedModel.url}
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                camera-controls
-                auto-rotate
-                style={{ flex: 1, width: "100%", height: "100%" }}
-              ></model-viewer>
+              {/* Close Button Top Right */}
+              <button
+                className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded z-50"
+                onClick={() => setSelectedModel(null)}
+              >
+                Close
+              </button>
 
+              {/* Image */}
+              <img
+                src={supabase.storage.from("menu-images").getPublicUrl(selectedModel.url).data.publicUrl}
+                alt={selectedModel.name}
+                className="object-contain max-h-full max-w-full rounded-lg flex-1"
+              />
+              
+
+              {/* Right Side Buttons */}
               <div className="sm:w-64 sm:ml-4 mt-4 sm:mt-0 flex flex-col justify-start gap-3">
-                <button
-                  className="bg-red-500 text-white px-3 py-1 rounded self-end"
-                  onClick={() => setSelectedModel(null)}
-                >
-                  Close
-                </button>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -297,148 +300,156 @@ export default function PublicMenu() {
                   setCustomerEmail("");
                   setTableNo("");
                   setCustomerPhone("");
+                  setStep(1);
                 }}
               >
                 Close
               </button>
-              <h2 className="text-2xl font-bold mb-4 text-black">Your Cart</h2>
 
-              {cart.length === 0 ? (
-                <p className="text-gray-700">No items in cart.</p>
+              {step === 1 ? (
+                <>
+                  <h2 className="text-2xl font-bold mb-4 text-black">Your Cart</h2>
+
+                  {cart.length === 0 ? (
+                    <p className="text-gray-700">No items in cart.</p>
+                  ) : (
+                    <div>
+                      <div className="overflow-x-auto max-h-64">
+                        <table className="w-full border mb-4">
+                          <thead>
+                            <tr className="bg-gray-200 text-black">
+                              <th className="p-2">Item</th>
+                              <th className="p-2">Description</th>
+                              <th className="p-2">Price</th>
+                              <th className="p-2">Qty</th>
+                              <th className="p-2">Total</th>
+                              <th className="p-2">Remove</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cart.map((item) => (
+                              <tr key={item.id} className="text-black border-t">
+                                <td className="p-2">{item.name}</td>
+                                <td className="p-2">{item.description}</td>
+                                <td className="p-2">₹{item.price}</td>
+                                <td className="p-2">{item.quantity}</td>
+                                <td className="p-2">₹{item.price * item.quantity}</td>
+                                <td className="p-2">
+                                  <button
+                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                                    onClick={() => removeFromCart(item.id)}
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <p className="text-black font-semibold">Items Total: ₹{itemsTotal}</p>
+                      <p className="text-black">Platform Fee: ₹{platformFee}</p>
+                      <h3 className="text-xl font-bold text-black mt-2">
+                        Grand Total: ₹{grandTotal}
+                      </h3>
+
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          placeholder="Enter Your Name"
+                          value={userName}
+                          onChange={(e) => setUserName(e.target.value)}
+                          className="w-full border p-2 rounded bg-white text-black"
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <input
+                          type="email"
+                          placeholder="Enter Your Email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className="w-full border p-2 rounded bg-white text-black"
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          placeholder="Enter Table No."
+                          value={tableNo}
+                          onChange={(e) => setTableNo(e.target.value)}
+                          className="w-full border p-2 rounded bg-white text-black"
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <input
+                          type="text"
+                          placeholder="Enter Your Phone Number"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          className="w-full border p-2 rounded bg-white text-black"
+                        />
+                      </div>
+
+                      <div className="mt-4 flex flex-col gap-2">
+                        <label className="flex items-center gap-2 text-black">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value="UPI"
+                            checked={selectedPayment === "UPI"}
+                            onChange={(e) => setSelectedPayment(e.target.value)}
+                            className="w-4 h-4 accent-blue-600"
+                          />
+                          Pay with UPI
+                        </label>
+
+                        <label className="flex items-center gap-2 text-black">
+                          <input
+                            type="radio"
+                            name="payment"
+                            value="COD"
+                            checked={selectedPayment === "COD"}
+                            onChange={(e) => setSelectedPayment(e.target.value)}
+                            className="w-4 h-4 accent-blue-600"
+                          />
+                          Cash only
+                        </label>
+                      </div>
+
+                      <button
+                        className={`mt-4 py-2 px-4 rounded font-bold shadow-lg w-full ${
+                          isOrderEnabled
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-400 text-black cursor-not-allowed"
+                        }`}
+                        disabled={!isOrderEnabled}
+                        onClick={handleContinue}
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div>
-                  <div className="overflow-x-auto max-h-64">
-                    <table className="w-full border mb-4">
-                      <thead>
-                        <tr className="bg-gray-200 text-black">
-                          <th className="p-2">Item</th>
-                          <th className="p-2">Description</th>
-                          <th className="p-2">Price</th>
-                          <th className="p-2">Qty</th>
-                          <th className="p-2">Total</th>
-                          <th className="p-2">Remove</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cart.map((item) => (
-                          <tr key={item.id} className="text-black border-t">
-                            <td className="p-2">{item.name}</td>
-                            <td className="p-2">{item.description}</td>
-                            <td className="p-2">₹{item.price}</td>
-                            <td className="p-2">{item.quantity}</td>
-                            <td className="p-2">₹{item.price * item.quantity}</td>
-                            <td className="p-2">
-                              <button
-                                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                                onClick={() => removeFromCart(item.id)}
-                              >
-                                Remove
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <p className="text-black">Platform Fee: ₹50</p>
-                  <h3 className="text-xl font-bold text-black mt-2">
-                    Total: ₹{totalBill}
-                  </h3>
-
-                  {/* User Details */}
-                  <div className="mt-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Your Name"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      className="w-full border p-2 rounded bg-white text-black"
-                    />
-                  </div>
-
-                  {/* ✅ Email input */}
-                  <div className="mt-4">
-                    <input
-                      type="email"
-                      placeholder="Enter Your Email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full border p-2 rounded bg-white text-black"
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Table No."
-                      value={tableNo}
-                      onChange={(e) => setTableNo(e.target.value)}
-                      className="w-full border p-2 rounded bg-white text-black"
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <input
-                      type="text"
-                      placeholder="Enter Your Phone Number"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full border p-2 rounded bg-white text-black"
-                    />
-                  </div>
-
-                  {/* Payment */}
-                  <div className="mt-4 flex flex-col gap-2">
-                    <label className="flex items-center gap-2 text-black">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="UPI"
-                        checked={selectedPayment === "UPI"}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
-                        className="w-4 h-4 accent-blue-600"
-                      />
-                      Pay with UPI
-                    </label>
-
-                    <label className="flex items-center gap-2 text-black">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="COD"
-                        checked={selectedPayment === "COD"}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
-                        className="w-4 h-4 accent-blue-600"
-                      />
-                      Cash only
-                    </label>
-
-                    <label className="flex items-center gap-2 text-black mt-1">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="UPILater"
-                        checked={selectedPayment === "UPILater"}
-                        onChange={(e) => setSelectedPayment(e.target.value)}
-                        className="w-4 h-4 accent-blue-600"
-                      />
-                      Pay with UPI Later
-                    </label>
-                  </div>
-
+                <>
+                  <h2 className="text-2xl font-bold mb-4 text-black">Complete Payment</h2>
+                  <p className="text-black mb-4">
+                    Amount to pay: <span className="font-bold">₹{grandTotal}</span>
+                  </p>
+                  <p className="text-black mb-4">
+                    Payment method: <span className="font-bold">{selectedPayment}</span>
+                  </p>
                   <button
-                    className={`mt-4 py-2 px-4 rounded font-bold shadow-lg w-full ${
-                      isOrderEnabled
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-400 text-black cursor-not-allowed"
-                    }`}
-                    disabled={!isOrderEnabled}
-                    onClick={placeOrder}
+                    className="bg-green-600 text-white py-2 px-4 rounded font-bold w-full"
+                    onClick={handlePayment}
                   >
-                    Order Now
+                    Pay Now
                   </button>
-                </div>
+                </>
               )}
             </div>
           </div>

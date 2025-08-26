@@ -7,7 +7,6 @@ export default function Orders() {
   const [errorMsg, setErrorMsg] = useState("");
   const [filter, setFilter] = useState("today"); // default today
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const platformFee = 50;
 
   useEffect(() => {
     fetchOrders();
@@ -228,20 +227,10 @@ export default function Orders() {
               </table>
             </div>
 
-            {/* Totals */}
-            <div className="mt-2 flex justify-between font-semibold text-black">
-              <span>Items Total:</span>
-              <span>₹{calculateItemsTotal(selectedOrder.items).toFixed(2)}</span>
-            </div>
-            <div className="mt-1 flex justify-between font-semibold text-black">
-              <span>Platform Fee:</span>
-              <span>₹{platformFee.toFixed(2)}</span>
-            </div>
-            <div className="mt-1 flex justify-between font-bold text-black">
+            {/* Grand Total */}
+            <div className="mt-4 flex justify-between font-bold text-lg text-black">
               <span>Grand Total:</span>
-              <span>
-                ₹{(calculateItemsTotal(selectedOrder.items) + platformFee).toFixed(2)}
-              </span>
+              <span>₹{calculateItemsTotal(selectedOrder.items).toFixed(2)}</span>
             </div>
 
             {/* Payment and Status */}

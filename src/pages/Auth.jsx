@@ -1,7 +1,7 @@
  import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import { Loader2, Mail, Lock, LogIn, UserPlus } from 'lucide-react'
+import { Loader2, Mail, Lock, LogIn, UserPlus, Eye, EyeOff } from 'lucide-react'
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true)
@@ -9,6 +9,7 @@ export default function Auth() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -16,18 +17,26 @@ export default function Auth() {
       const {
         data: { session }
       } = await supabase.auth.getSession()
-      // No auto navigation here
+
+      const urlParams = new URLSearchParams(window.location.search)
+      const isResetFlow = urlParams.has('type') && urlParams.get('type') === 'recovery'
+
+      if (session && !isResetFlow) {
+        navigate('/dashboard')
+      }
     }
     checkSession()
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // No auto navigation here
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        navigate('/dashboard')
+      }
     })
 
     return () => {
-      listener.subscription.unsubscribe()
+      subscription?.subscription?.unsubscribe()
     }
-  }, [])
+  }, [navigate])
 
   async function handleAuth(e) {
     e.preventDefault()
@@ -42,7 +51,6 @@ export default function Auth() {
         navigate('/dashboard')
       }
     } else {
-      // Signup flow with profile insert
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
       if (signUpError) {
         setMessage(signUpError.message)
@@ -55,34 +63,31 @@ export default function Auth() {
               {
                 id: user.id,
                 email: user.email,
-                name: '', // agar tumhara signup me name field nahi to blank chod do
-                // baaki columns jaisa address, phone agar hai to yahan add kar sakte ho
+                name: '',
               }
             ])
-          if (profileError) {
-            console.error('Profile insert error:', profileError)
-          }
+          if (profileError) console.error('Profile insert error:', profileError)
         }
-        // Signup ke baad turant login karwana
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
-        if (loginError) {
-          setMessage(loginError.message)
-        } else {
-          navigate('/dashboard')
-        }
+        if (loginError) setMessage(loginError.message)
+        else navigate('/dashboard')
       }
     }
     setLoading(false)
   }
 
-  async function handleGoogleSignIn() {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
-    if (error) {
-      setMessage(error.message)
-      setLoading(false)
+  async function handleForgotPassword() {
+    if (!email) {
+      setMessage('Please enter your email to reset password')
+      return
     }
-    // Redirect automatically on success
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'http://localhost:5173/update-password'
+    })
+
+    if (error) setMessage(error.message)
+    else setMessage('Password reset email sent!')
   }
 
   return (
@@ -97,8 +102,13 @@ export default function Auth() {
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-      <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl max-w-md w-full p-10 sm:p-12 border border-white/40">
+      <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl max-w-md w-full p-10 sm:p-12 border border-white/40 flex flex-col items-center">
         
+        {/* AR Logo Circle */}
+        <div className="bg-gray-800 rounded-full w-20 h-20 flex items-center justify-center mb-6 shadow-lg">
+          <span className="text-white font-bold text-xl">AR</span>
+        </div>
+
         <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-2">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
@@ -106,26 +116,7 @@ export default function Auth() {
           {isLogin ? 'Login to manage your restaurant menu' : 'Sign up to start your AR menu journey'}
         </p>
 
-        <button
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="flex items-center justify-center gap-3 w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-100 active:bg-gray-200 transition disabled:opacity-60 mb-6 shadow-sm"
-        >
-          <img
-            src="https://www.svgrepo.com/show/475656/google-color.svg"
-            alt="Google"
-            className="w-5 h-5"
-          />
-          Continue with Google
-        </button>
-
-        <div className="flex items-center my-4">
-          <hr className="flex-1 border-gray-300" />
-          <span className="px-3 text-gray-400 text-sm">OR</span>
-          <hr className="flex-1 border-gray-300" />
-        </div>
-
-        <form onSubmit={handleAuth} className="flex flex-col gap-4">
+        <form onSubmit={handleAuth} className="flex flex-col gap-4 w-full">
           <div className="flex items-center border border-gray-300 rounded-lg px-3 bg-white shadow-sm">
             <Mail className="text-gray-400 w-5 h-5" />
             <input
@@ -138,10 +129,11 @@ export default function Auth() {
               autoComplete="email"
             />
           </div>
-          <div className="flex items-center border border-gray-300 rounded-lg px-3 bg-white shadow-sm">
+
+          <div className="flex items-center border border-gray-300 rounded-lg px-3 bg-white shadow-sm relative">
             <Lock className="text-gray-400 w-5 h-5" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -149,8 +141,24 @@ export default function Auth() {
               required
               autoComplete={isLogin ? "current-password" : "new-password"}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(prev => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-black cursor-pointer p-0 bg-transparent border-none"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
-          
+
+          {isLogin && (
+            <p
+              onClick={handleForgotPassword}
+              className="text-left text-sm text-blue-600 hover:underline cursor-pointer"
+            >
+              Forgot password?
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
