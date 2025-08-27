@@ -11,13 +11,22 @@ export default function UpdatePassword() {
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false)
   const navigate = useNavigate()
 
-  // 🔹 Detect if user came from reset link and prevent dashboard auto-open
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const type = urlParams.get("type") || urlParams.get("recovery")
+
+    // Recovery link check
     if (type === "recovery" || window.location.href.includes("access_token")) {
       setIsRecoveryFlow(true)
-      // 🔹 Clear any auto-login session to prevent dashboard open
+
+      // Ensure Supabase handles recovery URL (important for deployed links)
+      supabase.auth.getSession().then(async ({ data }) => {
+        if (!data.session) {
+          await supabase.auth.exchangeCodeForSession(window.location.href)
+        }
+      })
+
+      // Sign out existing sessions to prevent auto-login
       supabase.auth.signOut()
     }
   }, [])
@@ -41,10 +50,8 @@ export default function UpdatePassword() {
     } else {
       setSuccess("Password updated successfully! Redirecting to login...")
 
-      // 🔹 Logout to ensure user is fully signed out
       await supabase.auth.signOut()
 
-      // Redirect to login page after 2 seconds
       setTimeout(() => navigate("/auth"), 2000)
     }
   }
@@ -54,14 +61,12 @@ export default function UpdatePassword() {
       className="flex items-center justify-center min-h-screen bg-cover bg-center relative"
       style={{ backgroundImage: "url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1920&q=80')" }}
     >
-      {/* Blur Overlay */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
 
       <form 
         onSubmit={handleUpdatePassword} 
         className="relative bg-white/95 p-10 rounded-3xl shadow-2xl w-96 space-y-6 z-10"
       >
-        {/* AR Circle inside form */}
         <div className="bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-lg">
           <span className="text-white text-xl font-bold">AR</span>
         </div>
