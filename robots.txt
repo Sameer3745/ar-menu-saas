@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ar-menu-saas.vercel.app/sitemap.xml
