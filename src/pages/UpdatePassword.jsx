@@ -57,8 +57,10 @@ export default function UpdatePassword() {
       // Sign out after updating password
       await supabase.auth.signOut()
 
-      // Redirect to Auth/Login page (both local & deployed)
-      setTimeout(() => navigate("/auth"), 2000)
+      // ✅ Production-safe redirect
+      setTimeout(() => {
+        window.location.href = `${import.meta.env.VITE_APP_BASE_URL}/auth`
+      }, 2000)
     }
   }
 
