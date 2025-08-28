@@ -59,13 +59,7 @@ export default function Auth() {
           const { user } = signUpData
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: user.id,
-                email: user.email,
-                name: '',
-              }
-            ])
+            .insert([{ id: user.id, email: user.email, name: '' }])
           if (profileError) console.error('Profile insert error:', profileError)
         }
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
@@ -82,9 +76,11 @@ export default function Auth() {
       return
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'http://localhost:5173/update-password'
-    })
+    const redirectTo = window.location.hostname.includes('localhost')
+      ? 'http://localhost:5173/update-password'
+      : 'https://ar-menu-saas.vercel.app/update-password'
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
     if (error) setMessage(error.message)
     else setMessage('Password reset email sent!')
@@ -104,7 +100,6 @@ export default function Auth() {
 
       <div className="relative bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl max-w-md w-full p-10 sm:p-12 border border-white/40 flex flex-col items-center">
         
-        {/* AR Logo Circle */}
         <div className="bg-gray-800 rounded-full w-20 h-20 flex items-center justify-center mb-6 shadow-lg">
           <span className="text-white font-bold text-xl">AR</span>
         </div>

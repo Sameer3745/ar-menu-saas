@@ -22,7 +22,11 @@ export default function UpdatePassword() {
       // Ensure Supabase handles recovery URL (important for deployed links)
       supabase.auth.getSession().then(async ({ data }) => {
         if (!data.session) {
-          await supabase.auth.exchangeCodeForSession(window.location.href)
+          try {
+            await supabase.auth.exchangeCodeForSession(window.location.href)
+          } catch (err) {
+            console.error("Recovery session error:", err)
+          }
         }
       })
 
@@ -50,8 +54,10 @@ export default function UpdatePassword() {
     } else {
       setSuccess("Password updated successfully! Redirecting to login...")
 
+      // Sign out after updating password
       await supabase.auth.signOut()
 
+      // Redirect to Auth/Login page (both local & deployed)
       setTimeout(() => navigate("/auth"), 2000)
     }
   }
