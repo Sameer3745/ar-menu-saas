@@ -1,4 +1,4 @@
- import { useEffect, useState } from 'react'
+ import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import DashboardHome from '../components/DashboardHome'
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [showNotificationBox, setShowNotificationBox] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const notificationRef = useRef(null)
 
   // Check user session
   useEffect(() => {
@@ -46,11 +47,14 @@ export default function Dashboard() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
         (payload) => {
+          const newOrder = {
+            id: payload.new.id,
+            customer_name: payload.new.customer_name,
+            total: payload.new.total || null,
+            created_at: payload.new.created_at,
+          }
+          setRecentOrders((prev) => [newOrder, ...prev])
           setNewOrdersCount((prev) => prev + 1)
-          setRecentOrders((prev) => [
-            { id: payload.new.id, customer_name: payload.new.customer_name },
-            ...prev,
-          ])
         }
       )
       .subscribe()
@@ -59,6 +63,21 @@ export default function Dashboard() {
       supabase.removeChannel(subscription)
     }
   }, [])
+
+  // Close notification box on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        setShowNotificationBox(false)
+      }
+    }
+    if (showNotificationBox) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showNotificationBox])
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -83,6 +102,15 @@ export default function Dashboard() {
     }
   }
 
+  const timeAgo = (timestamp) => {
+    if (!timestamp) return ''
+    const diff = Math.floor((Date.now() - new Date(timestamp)) / 60000)
+    if (diff < 1) return 'Just now'
+    if (diff < 60) return `${diff} min ago`
+    const hours = Math.floor(diff / 60)
+    return `${hours} hr ago`
+  }
+
   if (loading) {
     return (
       <p className="text-center mt-10 text-gray-500">Checking session...</p>
@@ -90,6 +118,17 @@ export default function Dashboard() {
   }
 
   const displayName = user?.user_metadata?.full_name || user?.email || 'User'
+
+  // Filter today's orders
+  const todayOrders = recentOrders.filter((order) => {
+    const orderDate = new Date(order.created_at)
+    const now = new Date()
+    return (
+      orderDate.getDate() === now.getDate() &&
+      orderDate.getMonth() === now.getMonth() &&
+      orderDate.getFullYear() === now.getFullYear()
+    )
+  })
 
   return (
     <div className="flex h-screen min-h-screen bg-gray-50 overflow-hidden">
@@ -168,18 +207,17 @@ export default function Dashboard() {
           </div>
 
           {/* Notification bell */}
-          <div className="flex items-center gap-4 relative">
+          <div className="flex items-center gap-4 relative" ref={notificationRef}>
             <button
               className="relative p-2 rounded-full bg-white hover:bg-gray-100"
               onClick={() => {
                 setShowNotificationBox(!showNotificationBox)
-                setNewOrdersCount(0) // reset count on click
-                if (!showNotificationBox) setRecentOrders([]) // clear orders when opening
+                setNewOrdersCount(0) // reset badge count on click
               }}
             >
               <Bell className="w-5 h-5 text-black" />
               {newOrdersCount > 0 && (
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {newOrdersCount}
                 </span>
               )}
@@ -187,16 +225,31 @@ export default function Dashboard() {
 
             {/* Notification dropdown */}
             {showNotificationBox && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border shadow-lg rounded-md p-2 z-50">
-                {recentOrders.length > 0 ? (
-                  recentOrders.map((order) => (
-                    <div key={order.id} className="text-sm text-black border-b last:border-b-0 py-1">
-                      New order received: {order.customer_name}
+              <div className="absolute right-0 mt-36 w-80 bg-white shadow-lg rounded-xl border border-gray-200 z-50">
+                <div className="p-3 border-b font-semibold text-gray-700">
+                  Today
+                </div>
+                <div className="max-h-60 overflow-y-auto divide-y">
+                  {todayOrders.length > 0 ? (
+                    todayOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="px-4 py-2 transition bg-white"
+                      >
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {order.customer_name}
+                        </p>
+                        <p className="text-xs text-gray-600 truncate">
+                          {order.total ? `₹${order.total}` : ''} • {timeAgo(order.created_at)}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center text-sm text-gray-500">
+                      No orders today
                     </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-black py-1">No orders</div>
-                )}
+                  )}
+                </div>
               </div>
             )}
           </div>
