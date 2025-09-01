@@ -22,7 +22,7 @@ const QRCodeGenerator = () => {
         setProfile(user);
 
         // Base URL for menu page
-        const baseUrl = ' http://localhost:5173';
+        const baseUrl = 'https://ar-menu-saas.vercel.app';
         const deployedLink = `${baseUrl}/menu/${user.id}`;
         setMenuUrl(deployedLink);
 
