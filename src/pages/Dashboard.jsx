@@ -50,7 +50,7 @@ export default function Dashboard() {
           const newOrder = {
             id: payload.new.id,
             customer_name: payload.new.customer_name,
-            total: payload.new.total || null,
+            total: payload.new.amount,
             created_at: payload.new.created_at,
           }
           setRecentOrders((prev) => [newOrder, ...prev])
@@ -240,7 +240,7 @@ export default function Dashboard() {
                           {order.customer_name}
                         </p>
                         <p className="text-xs text-gray-600 truncate">
-                          {order.total ? `₹${order.total}` : ''} • {timeAgo(order.created_at)}
+                          ₹{order.total || ''} • {timeAgo(order.created_at)}
                         </p>
                       </div>
                     ))

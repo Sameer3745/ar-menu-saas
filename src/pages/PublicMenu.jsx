@@ -29,6 +29,7 @@ export default function PublicMenu() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
   const [step, setStep] = useState(1);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -45,7 +46,7 @@ export default function PublicMenu() {
 
         const withModels = (data || []).map((item) => ({
           ...item,
-          url: item.image_url, // Supabase image path fetch
+          url: item.image_url,
         }));
 
         setMenuItems(withModels);
@@ -96,7 +97,7 @@ export default function PublicMenu() {
   };
 
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const platformFee = cart.length ? 50 : 0;
+  const platformFee = selectedPayment === "UPI" && cart.length ? 50 : 0;
   const grandTotal = itemsTotal + platformFee;
 
   const isOrderEnabled =
@@ -107,7 +108,7 @@ export default function PublicMenu() {
     selectedPayment &&
     cart.length > 0;
 
-  const placeOrder = async () => {
+  const placeOrder = async (status = "pending") => {
     const orderData = {
       owner_id: profileId,
       customer_name: userName.trim(),
@@ -115,7 +116,7 @@ export default function PublicMenu() {
       customer_phone: customerPhone.trim(),
       items: JSON.stringify(cart),
       amount: itemsTotal,
-      status: "pending",
+      status,
       table_no: tableNo.trim(),
       payment_method: selectedPayment,
     };
@@ -128,7 +129,7 @@ export default function PublicMenu() {
       return;
     }
 
-    alert("Order placed successfully!");
+    alert("Order placed successfully! You cannot cancel after placing it.");
     setCart([]);
     setShowCart(false);
     setUserName("");
@@ -137,16 +138,45 @@ export default function PublicMenu() {
     setCustomerPhone("");
     setSelectedPayment("");
     setStep(1);
+    setPaymentSuccess(false);
   };
 
   const handleContinue = () => {
     if (!isOrderEnabled) return;
-    setStep(2);
+
+    if (selectedPayment === "UPI") {
+      const options = {
+        key: "rzp_test_RCHw1ktAkLhWTr", // Your Razorpay test key
+        amount: grandTotal * 100,
+        currency: "INR",
+        name: restaurantName || "Restaurant",
+        description: "Order Payment",
+        handler: function () {
+          setPaymentSuccess(true);
+          setStep(2);
+        },
+        prefill: {
+          name: userName,
+          email: customerEmail,
+          contact: customerPhone,
+        },
+        theme: {
+          color: "#F59E0B",
+        },
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } else {
+      setStep(2);
+    }
   };
 
   const handlePayment = () => {
-    alert(`Payment of ₹${grandTotal} via ${selectedPayment} successful!`);
-    placeOrder();
+    if (selectedPayment === "UPI" && paymentSuccess) {
+      placeOrder("paid");
+    } else {
+      placeOrder("pending");
+    }
   };
 
   return (
@@ -155,7 +185,7 @@ export default function PublicMenu() {
         <img
           src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80"
           alt="menu background"
-          className="w-full h-full object-cover opacity-40 blur-sm"
+          className="w-full h-full object-cover opacity-40 blur-sm fixed"
         />
       </div>
 
@@ -186,6 +216,7 @@ export default function PublicMenu() {
           </button>
         </div>
 
+        {/* Menu Items */}
         {sortedCategories.map((category) => (
           <div
             key={category}
@@ -243,23 +274,17 @@ export default function PublicMenu() {
             }}
           >
             <div className="bg-white rounded-2xl p-4 w-[90%] h-[80%] relative flex flex-col sm:flex-row">
-              {/* Close Button Top Right */}
               <button
                 className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded z-50"
                 onClick={() => setSelectedModel(null)}
               >
                 Close
               </button>
-
-              {/* Image */}
               <img
                 src={supabase.storage.from("menu-images").getPublicUrl(selectedModel.url).data.publicUrl}
                 alt={selectedModel.name}
                 className="object-contain max-h-full max-w-full rounded-lg flex-1"
               />
-              
-
-              {/* Right Side Buttons */}
               <div className="sm:w-64 sm:ml-4 mt-4 sm:mt-0 flex flex-col justify-start gap-3">
                 <div className="flex items-center gap-2">
                   <button
@@ -301,6 +326,7 @@ export default function PublicMenu() {
                   setTableNo("");
                   setCustomerPhone("");
                   setStep(1);
+                  setPaymentSuccess(false);
                 }}
               >
                 Close
@@ -349,9 +375,9 @@ export default function PublicMenu() {
                       </div>
 
                       <p className="text-black font-semibold">Items Total: ₹{itemsTotal}</p>
-                      <p className="text-black">Platform Fee: ₹{platformFee}</p>
+                      {selectedPayment === "UPI" && <p className="text-black">Platform Fee: ₹{platformFee}</p>}
                       <h3 className="text-xl font-bold text-black mt-2">
-                        Grand Total: ₹{grandTotal}
+                        Grand Total: ₹{selectedPayment === "UPI" ? grandTotal : itemsTotal}
                       </h3>
 
                       <div className="mt-4">
@@ -436,18 +462,16 @@ export default function PublicMenu() {
                 </>
               ) : (
                 <>
-                  <h2 className="text-2xl font-bold mb-4 text-black">Complete Payment</h2>
-                  <p className="text-black mb-4">
-                    Amount to pay: <span className="font-bold">₹{grandTotal}</span>
-                  </p>
-                  <p className="text-black mb-4">
-                    Payment method: <span className="font-bold">{selectedPayment}</span>
+                  <h2 className="text-2xl font-bold mb-4 text-black">Complete Order</h2>
+                  <p className="text-red-600 font-bold mb-2">You cannot cancel after ordering!</p>
+                  <p className="text-black mb-2">
+                    Amount to pay: <span className="font-bold">₹{selectedPayment === "UPI" ? grandTotal : itemsTotal}</span>
                   </p>
                   <button
-                    className="bg-green-600 text-white py-2 px-4 rounded font-bold w-full"
+                    className="bg-green-600 text-white px-4 py-2 rounded font-bold w-full"
                     onClick={handlePayment}
                   >
-                    Pay Now
+                    Order Now
                   </button>
                 </>
               )}
@@ -458,3 +482,4 @@ export default function PublicMenu() {
     </div>
   );
 }
+
