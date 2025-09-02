@@ -129,7 +129,35 @@ export default function PublicMenu() {
       return;
     }
 
-    alert("Order placed successfully! You cannot cancel after placing it.");
+    // --- SMS Part using Supabase Function ---
+    try {
+      const smsRes = await fetch(
+        "https://blytpwngwldnveqylait.supabase.co/functions/v1/send-order-sms", 
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // ✅ FIX,
+        },
+        body: JSON.stringify({
+          customerPhone: customerPhone.trim(),
+          message: `Hi ${userName}, your order at ${restaurantName} , has ${status}. Total: ₹${itemsTotal}, Payment Method: ${selectedPayment}. if paid ignore, And Enjoy your meal!
+         `,
+        }),
+      }
+    );
+
+    if (!smsRes.ok) {
+      console.error("SMS function failed:", await smsRes.text());
+     } else {
+      console.log("SMS sent successfully!");
+     }
+    } catch (smsError) {
+      console.error("Failed to send SMS:", smsError);
+    }
+    // --- SMS Part ends ---
+
+    alert("Order placed successfully! See confirmation details in sms ");
     setCart([]);
     setShowCart(false);
     setUserName("");
@@ -146,7 +174,7 @@ export default function PublicMenu() {
 
     if (selectedPayment === "UPI") {
       const options = {
-        key: "rzp_test_RCHw1ktAkLhWTr", // Your Razorpay test key
+        key: "rzp_test_RCHw1ktAkLhWTr",
         amount: grandTotal * 100,
         currency: "INR",
         name: restaurantName || "Restaurant",
@@ -482,4 +510,3 @@ export default function PublicMenu() {
     </div>
   );
 }
-
