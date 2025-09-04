@@ -1,4 +1,5 @@
- import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+ // src/App.jsx
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 
@@ -13,10 +14,13 @@ import Orders from "./components/Orders";
 import QRCodePage from "./components/QRCodePage";
 import Settings from "./components/Settings";
 
+// Admin Dashboard import
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 function AppRoutes({ user }) {
   const location = useLocation();
 
-  // ✅ check if current URL is recovery (password reset link)
+  // Check if user came via password recovery link
   const isRecoveryFlow =
     location.search.includes("type=recovery") ||
     location.search.includes("access_token");
@@ -24,21 +28,27 @@ function AppRoutes({ user }) {
   return (
     <Routes>
       {/* Landing page */}
-      <Route path="/" element={user && !isRecoveryFlow ? <Navigate to="/dashboard" /> : <LandingPage />} />
+      <Route
+        path="/"
+        element={user && !isRecoveryFlow ? <Navigate to="/dashboard" /> : <LandingPage />}
+      />
 
       {/* Auth page */}
-      <Route path="/auth" element={user && !isRecoveryFlow ? <Navigate to="/dashboard" /> : <Auth />} />
+      <Route
+        path="/auth"
+        element={user && !isRecoveryFlow ? <Navigate to="/dashboard" /> : <Auth />}
+      />
 
       {/* Update password page */}
       <Route path="/update-password" element={<UpdatePassword />} />
 
-      {/* Agar user recovery link se aya hai → force update-password page */}
+      {/* Force update-password page if recovery link */}
       {isRecoveryFlow && <Route path="*" element={<Navigate to="/update-password" />} />}
 
       {/* Public menu */}
       <Route path="/menu/:profileId" element={<PublicMenu />} />
 
-      {/* Dashboard */}
+      {/* Owner Dashboard */}
       <Route
         path="/dashboard"
         element={user ? <Dashboard /> : <Navigate to="/" />}
@@ -49,6 +59,9 @@ function AppRoutes({ user }) {
         <Route path="qrcode" element={<QRCodePage />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+
+      {/* Admin Dashboard */}
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
       {/* 404 fallback */}
       <Route
@@ -68,6 +81,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if user is logged in
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
       setLoading(false);

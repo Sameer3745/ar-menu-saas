@@ -119,6 +119,7 @@ export default function PublicMenu() {
       status,
       table_no: tableNo.trim(),
       payment_method: selectedPayment,
+      platform_fee: platformFee,
     };
 
     const { error } = await supabase.from("orders").insert([orderData]);
