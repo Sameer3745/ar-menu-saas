@@ -78,7 +78,7 @@ export default function Auth() {
 
     const redirectTo = window.location.hostname.includes('localhost')
       ? 'http://localhost:5173/update-password'
-      : 'https://ar-menu-saas.vercel.app/update-password'
+      : 'https://www.armenu.in/update-password'
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
