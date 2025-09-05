@@ -8,7 +8,6 @@ export default function UpdatePassword() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [token, setToken] = useState("")
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false)
   const navigate = useNavigate()
 
@@ -19,19 +18,20 @@ export default function UpdatePassword() {
 
     if (type === "recovery" && accessToken) {
       setIsRecoveryFlow(true)
-      setToken(accessToken)
 
-      // ✅ Set the recovery session in Supabase
+      // ✅ Set recovery session properly
       supabase.auth
         .setSession({ access_token: accessToken })
         .then(({ data, error }) => {
-          if (error) {
+          if (error || !data.session) {
             console.error("Recovery session error:", error)
             setError("Invalid or expired recovery link.")
+            setIsRecoveryFlow(false)
           }
         })
     } else {
       setError("Invalid or expired recovery link.")
+      setIsRecoveryFlow(false)
     }
   }, [])
 
@@ -59,10 +59,9 @@ export default function UpdatePassword() {
     } else {
       setSuccess("Password updated successfully! Redirecting to login...")
 
-      // Sign out after updating password
+      // ✅ Sign out after password update
       await supabase.auth.signOut()
 
-      // Redirect to login page
       setTimeout(() => {
         window.location.href = `${import.meta.env.VITE_APP_BASE_URL}/auth`
       }, 2000)
