@@ -13,25 +13,25 @@ export default function UpdatePassword() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    const type = urlParams.get("type")
-    const accessToken = urlParams.get("access_token")
+    const type = urlParams.get("type") || urlParams.get("recovery")
 
-    if (type === "recovery" && accessToken) {
+    // Recovery link check
+    if (type === "recovery" || window.location.href.includes("access_token")) {
       setIsRecoveryFlow(true)
 
-      // ✅ Set recovery session properly
-      supabase.auth
-        .setSession({ access_token: accessToken })
-        .then(({ data, error }) => {
-          if (error || !data.session) {
-            console.error("Recovery session error:", error)
-            setError("Invalid or expired recovery link.")
-            setIsRecoveryFlow(false)
+      // Ensure Supabase handles recovery URL (important for deployed links)
+      supabase.auth.getSession().then(async ({ data }) => {
+        if (!data.session) {
+          try {
+            await supabase.auth.exchangeCodeForSession(window.location.href)
+          } catch (err) {
+            console.error("Recovery session error:", err)
           }
-        })
-    } else {
-      setError("Invalid or expired recovery link.")
-      setIsRecoveryFlow(false)
+        }
+      })
+
+      // Sign out existing sessions to prevent auto-login
+      supabase.auth.signOut()
     }
   }, [])
 
@@ -45,11 +45,6 @@ export default function UpdatePassword() {
       return
     }
 
-    if (!isRecoveryFlow) {
-      setError("Cannot update password: invalid recovery session.")
-      return
-    }
-
     setLoading(true)
     const { error } = await supabase.auth.updateUser({ password })
     setLoading(false)
@@ -59,9 +54,10 @@ export default function UpdatePassword() {
     } else {
       setSuccess("Password updated successfully! Redirecting to login...")
 
-      // ✅ Sign out after password update
+      // Sign out after updating password
       await supabase.auth.signOut()
 
+      // ✅ Production-safe redirect
       setTimeout(() => {
         window.location.href = `${import.meta.env.VITE_APP_BASE_URL}/auth`
       }, 2000)
@@ -110,7 +106,7 @@ export default function UpdatePassword() {
 
         <button 
           type="submit"
-          disabled={loading || !isRecoveryFlow}
+          disabled={loading}
           className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition font-medium"
         >
           {loading ? "Updating..." : "Update Password"}
