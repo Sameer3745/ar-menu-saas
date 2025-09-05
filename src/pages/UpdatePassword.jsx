@@ -8,30 +8,30 @@ export default function UpdatePassword() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [token, setToken] = useState("")
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    const type = urlParams.get("type") || urlParams.get("recovery")
+    const type = urlParams.get("type")
+    const accessToken = urlParams.get("access_token")
 
-    // Recovery link check
-    if (type === "recovery" || window.location.href.includes("access_token")) {
+    if (type === "recovery" && accessToken) {
       setIsRecoveryFlow(true)
+      setToken(accessToken)
 
-      // Ensure Supabase handles recovery URL (important for deployed links)
-      supabase.auth.getSession().then(async ({ data }) => {
-        if (!data.session) {
-          try {
-            await supabase.auth.exchangeCodeForSession(window.location.href)
-          } catch (err) {
-            console.error("Recovery session error:", err)
+      // ✅ Set the recovery session in Supabase
+      supabase.auth
+        .setSession({ access_token: accessToken })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error("Recovery session error:", error)
+            setError("Invalid or expired recovery link.")
           }
-        }
-      })
-
-      // Sign out existing sessions to prevent auto-login
-      supabase.auth.signOut()
+        })
+    } else {
+      setError("Invalid or expired recovery link.")
     }
   }, [])
 
@@ -42,6 +42,11 @@ export default function UpdatePassword() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
+      return
+    }
+
+    if (!isRecoveryFlow) {
+      setError("Cannot update password: invalid recovery session.")
       return
     }
 
@@ -57,7 +62,7 @@ export default function UpdatePassword() {
       // Sign out after updating password
       await supabase.auth.signOut()
 
-      // ✅ Production-safe redirect
+      // Redirect to login page
       setTimeout(() => {
         window.location.href = `${import.meta.env.VITE_APP_BASE_URL}/auth`
       }, 2000)
@@ -106,7 +111,7 @@ export default function UpdatePassword() {
 
         <button 
           type="submit"
-          disabled={loading}
+          disabled={loading || !isRecoveryFlow}
           className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition font-medium"
         >
           {loading ? "Updating..." : "Update Password"}
