@@ -22,7 +22,7 @@ const QRCodeGenerator = () => {
         setProfile(user);
 
         // Base URL for menu page
-        const baseUrl = 'https://www.armenu.in';
+        const baseUrl = 'https://www.armenu.in'
         const deployedLink = `${baseUrl}/menu/${user.id}`;
         setMenuUrl(deployedLink);
 

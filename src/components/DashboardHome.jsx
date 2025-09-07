@@ -31,7 +31,11 @@ export default function DashboardHome() {
     fetchOrders()
   }, [])
 
-  if (loading) return <p>Loading dashboard data...</p>
+  if (loading) return (
+  <p className="text-black text-center">
+    Loading dashboard data...
+  </p>
+ );
 
   // Total Orders
   const totalOrders = orders.length
@@ -78,7 +82,7 @@ export default function DashboardHome() {
         <div className="p-4 rounded-lg shadow-sm border bg-purple-50 text-purple-700">
           <div className="text-2xl"></div>
           <div className="text-lg font-semibold">{totalOrders}</div>
-          <div className="text-sm">Today's Orders</div>
+          <div className="text-sm">Today's Total Orders</div>
         </div>
 
         <div className="p-4 rounded-lg shadow-sm border bg-green-50 text-green-700">
