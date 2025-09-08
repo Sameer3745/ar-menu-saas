@@ -97,7 +97,7 @@ export default function PublicMenu() {
   };
 
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const platformFee = selectedPayment === "UPI" && cart.length ? 50 : 0;
+  const platformFee = selectedPayment === "UPI" && cart.length ? 1 : 0;
   const grandTotal = itemsTotal + platformFee;
 
   const isOrderEnabled =
@@ -133,26 +133,26 @@ export default function PublicMenu() {
     // --- SMS Part using Supabase Function ---
     try {
       const smsRes = await fetch(
-        "https://blytpwngwldnveqylait.supabase.co/functions/v1/send-order-sms", 
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // ✅ FIX,
-        },
-        body: JSON.stringify({
-          customerPhone: customerPhone.trim(),
-          message: `Hi ${userName}, your order at ${restaurantName} , has ${status}. Total: ₹${itemsTotal}, Payment Method: ${selectedPayment}. if paid ignore, And Enjoy your meal!
+        "https://blytpwngwldnveqylait.supabase.co/functions/v1/send-order-sms",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`, // ✅ FIX
+          },
+          body: JSON.stringify({
+            customerPhone: customerPhone.trim(),
+            message: `Hi ${userName}, your order at ${restaurantName} , has ${status}. Total: ₹${itemsTotal}, Payment Method: ${selectedPayment}. if paid ignore, And Enjoy your meal!
          `,
-        }),
-      }
-    );
+          }),
+        }
+      );
 
-    if (!smsRes.ok) {
-      console.error("SMS function failed:", await smsRes.text());
-     } else {
-      console.log("SMS sent successfully!");
-     }
+      if (!smsRes.ok) {
+        console.error("SMS function failed:", await smsRes.text());
+      } else {
+        console.log("SMS sent successfully!");
+      }
     } catch (smsError) {
       console.error("Failed to send SMS:", smsError);
     }
@@ -170,31 +170,73 @@ export default function PublicMenu() {
     setPaymentSuccess(false);
   };
 
-  const handleContinue = () => {
+  // ✅ UPDATED handleContinue function
+  const handleContinue = async () => {
     if (!isOrderEnabled) return;
 
     if (selectedPayment === "UPI") {
-      const options = {
-        key: "rzp_test_RCHw1ktAkLhWTr",
-        amount: grandTotal * 100,
-        currency: "INR",
-        name: restaurantName || "Restaurant",
-        description: "Order Payment",
-        handler: function () {
-          setPaymentSuccess(true);
-          setStep(2);
-        },
-        prefill: {
-          name: userName,
-          email: customerEmail,
-          contact: customerPhone,
-        },
-        theme: {
-          color: "#F59E0B",
-        },
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      try {
+        // 🔹 Call Supabase create-order function
+        const res = await fetch(
+          "https://blytpwngwldnveqylait.functions.supabase.co/create-order",
+          {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,//must
+          },
+            body: JSON.stringify({ amount: grandTotal }), // rupees bhej rahe
+          }
+        );
+        const order = await res.json();
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID, // ✅ env se key
+          amount: order.amount, // paise me
+          currency: order.currency,
+          name: restaurantName || "Restaurant",
+          description: "Order Payment",
+          order_id: order.id, // ✅ order_id from backend
+          handler: async function (response) {
+            // 🔹 Call verify-payment function
+            const verifyRes = await fetch(
+              "https://blytpwngwldnveqylait.functions.supabase.co/verify-payment",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json",
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+                body: JSON.stringify({
+                  ...response, // razorpay_order_id, payment_id, signature
+                  amount: grandTotal * 100,
+                })
+              }
+            );
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              setPaymentSuccess(true);
+              setStep(2);
+            } else {
+              alert("Payment verification failed!");
+            }
+          },
+          prefill: {
+            name: userName,
+            email: customerEmail,
+            contact: customerPhone,
+          },
+          theme: {
+            color: "#F59E0B",
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        console.error("Razorpay error:", err);
+        alert("Payment initialization failed");
+      }
     } else {
       setStep(2);
     }
@@ -504,7 +546,7 @@ export default function PublicMenu() {
                   </button>
                 </>
               )}
-            </div>
+            </div>    
           </div>
         )}
       </div>
