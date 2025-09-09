@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import PublicMenu from "./pages/PublicMenu";
 import LandingPage from "./pages/LandingPage";
 import UpdatePassword from "./pages/UpdatePassword";
+import Policies from "./pages/Policies"; // ✅ Add Policies page
 
 import MenuManagement from "./components/MenuManagement";
 import Orders from "./components/Orders";
@@ -48,9 +49,12 @@ function AppRoutes({ user }) {
       {/* Public menu */}
       <Route path="/menu/:profileId" element={<PublicMenu />} />
 
+      {/* Policies page (Razorpay) */}
+      <Route path="/policies" element={<Policies />} />
+
       {/* Owner Dashboard */}
       <Route
-        path="/dashboard"
+        path="/dashboard/*"
         element={user ? <Dashboard /> : <Navigate to="/" />}
       >
         <Route index element={null} />

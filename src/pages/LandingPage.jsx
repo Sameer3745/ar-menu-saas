@@ -48,7 +48,7 @@ export default function LandingPage() {
             and create memorable dining experiences that boost your sales.
           </p>
 
-          <div className="flex justify-center md:justify-start gap-4">
+          <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
             <button
               onClick={() => navigate("/auth")}
               className="bg-white text-black px-8 py-4 font-bold rounded-xl shadow-md hover:bg-gray-200 transition transform hover:scale-105"
@@ -62,6 +62,14 @@ export default function LandingPage() {
               aria-label="Watch Demo"
             >
               Watch Demo
+            </button>
+            {/* Policies Button */}
+            <button
+              onClick={() => navigate("/policies")}
+              className="border border-white text-white px-6 py-4 font-semibold rounded-xl hover:bg-white hover:text-black transition"
+              aria-label="View Policies"
+            >
+              View Policies
             </button>
           </div>
         </div>
@@ -176,9 +184,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black/70 py-6 text-center text-white font-semibold relative z-10 border-t border-white/20">
-        Made with <span role="img" aria-label="love">❤️</span> by Saas Team &mdash; AR Menu &copy; {new Date().getFullYear()}
-      </footer>
+      <footer className="bg-black/70 py-6 text-center text-white font-semibold relative z-10 border-t border-white/20 flex flex-col items-center gap-2">
+        <div>
+          Made with <span role="img" aria-label="love">❤️</span> by Saas Team &mdash; AR Menu &copy; {new Date().getFullYear()}
+        </div>
+     </footer>
     </div>
   );
 }
