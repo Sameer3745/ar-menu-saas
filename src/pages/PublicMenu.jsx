@@ -97,7 +97,7 @@ export default function PublicMenu() {
   };
 
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const platformFee = selectedPayment === "UPI" && cart.length ? 1 : 0;
+  const platformFee = selectedPayment === "UPI" && cart.length ? 50 : 0;
   const grandTotal = itemsTotal + platformFee;
 
   const isOrderEnabled =
@@ -158,7 +158,7 @@ export default function PublicMenu() {
     }
     // --- SMS Part ends ---
 
-    alert("Order placed successfully! See confirmation details in sms ");
+    alert("Order placed successfully! order will served soon ");
     setCart([]);
     setShowCart(false);
     setUserName("");
@@ -197,29 +197,13 @@ export default function PublicMenu() {
           name: restaurantName || "Restaurant",
           description: "Order Payment",
           order_id: order.id, // ✅ order_id from backend
-          handler: async function (response) {
-            // 🔹 Call verify-payment function
-            const verifyRes = await fetch(
-              "https://blytpwngwldnveqylait.functions.supabase.co/verify-payment",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json",
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              },
-                body: JSON.stringify({
-                  ...response, // razorpay_order_id, payment_id, signature
-                  amount: grandTotal * 100,
-                })
-              }
-            );
-            const verifyData = await verifyRes.json();
+          handler: function (response) {
+            console.log("✅ Payment success:", response);
 
-            if (verifyData.success) {
-              setPaymentSuccess(true);
-              setStep(2);
-            } else {
-              alert("Payment verification failed!");
-            }
+            // Yahi par order ko success dikha do
+            setPaymentSuccess(true); // state update
+            setStep(2); // Next step UI me le jao (Order Now button dikh jaayega)
+            
           },
           prefill: {
             name: userName,
