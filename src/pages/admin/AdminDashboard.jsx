@@ -16,8 +16,8 @@ export default function AdminDashboard() {
   // Owners states
   const [owners, setOwners] = useState([]);
   const [selectedOwner, setSelectedOwner] = useState(null);
-
-  // Custom date filter
+  
+ // Custom date filter
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
 
@@ -358,201 +358,248 @@ export default function AdminDashboard() {
         )}
 
         {/* Owners Page */}
-        {activePage === "owners" && (
-          <div className="bg-white p-6 shadow-lg rounded-xl">
-            <h2 className="text-2xl font-bold mb-4 text-black">Owners Information</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-left border-collapse">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-3 text-black font-semibold">Owner ID</th>
-                    <th className="p-3 text-black font-semibold">Email ID</th>
-                    <th className="p-3 text-black font-semibold">Created At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {owners.map((owner) => (
-                    <tr
-                      key={owner.id}
-                      className="border-t hover:bg-gray-50 transition-all cursor-pointer"
-                      onClick={() => setSelectedOwner(owner)}
-                    >
-                      <td className="p-3 text-black">{owner.id}</td>
-                      <td className="p-3 text-black">{owner.email}</td>
-                      <td className="p-3 text-black">
-                        {new Date(owner.created_at).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+{activePage === "owners" && (
+  <div className="bg-white p-6 shadow-lg rounded-xl">
+    <h2 className="text-2xl font-bold mb-4 text-black">Owners Information</h2>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[600px] text-left border-collapse">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-3 text-black font-semibold">Owner ID</th>
+            <th className="p-3 text-black font-semibold">Email ID</th>
+            <th className="p-3 text-black font-semibold">Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {owners.map((owner) => (
+            <tr
+              key={owner.id}
+              className="border-t hover:bg-gray-50 transition-all cursor-pointer"
+              onClick={async () => {
+                // Fetch bank account details for this owner
+                const { data: bankAccounts, error } = await supabase
+                  .from('bank_accounts')
+                  .select('account_holder_name, account_number, ifsc, upi_id, phone_number')
+                  .eq('user_id', owner.id)
 
-              {selectedOwner && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
-                  <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-auto">
-                    <h3 className="text-xl font-bold text-black mb-4">Owner Details</h3>
-                    <p className="text-black">
-                      <span className="font-semibold">Owner ID:</span> {selectedOwner.id}
-                    </p>
-                    <p className="text-black">
-                      <span className="font-semibold">Email:</span> {selectedOwner.email}
-                    </p>
-                    <p className="text-black">
-                      <span className="font-semibold">Created At:</span>{" "}
-                      {new Date(selectedOwner.created_at).toLocaleString("en-IN", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                    <button
-                      onClick={() => setSelectedOwner(null)}
-                      className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              )}
+                if (error) {
+                  console.error('Error fetching bank accounts:', error)
+                }
+
+                setSelectedOwner({
+                  ...owner,
+                  bankAccounts: bankAccounts || []
+                })
+              }}
+            >
+              <td className="p-3 text-black">{owner.id}</td>
+              <td className="p-3 text-black">{owner.email}</td>
+              <td className="p-3 text-black">
+                {new Date(owner.created_at).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {selectedOwner && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-auto">
+            <h3 className="text-xl font-bold text-black mb-4">Owner Details</h3>
+
+            {/* Owner Info Table */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="font-semibold text-black">Owner ID:</div>
+              <div className="text-black">{selectedOwner.id}</div>
+
+              <div className="font-semibold text-black">Email:</div>
+              <div className="text-black">{selectedOwner.email}</div>
+
+              <div className="font-semibold text-black">Created At:</div>
+              <div className="text-black">
+                {new Date(selectedOwner.created_at).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
             </div>
+
+            {/* Bank Accounts Section */}
+            {selectedOwner.bankAccounts && selectedOwner.bankAccounts.length > 0 && (
+              <div>
+                <h4 className="text-lg font-semibold text-black mb-2">Bank Account Details</h4>
+                {selectedOwner.bankAccounts.map((bank, idx) => (
+                  <div key={idx} className="grid grid-cols-2 gap-2 mb-2 border-t pt-2">
+                    <div className="font-semibold text-black">Account Holder Name:</div>
+                    <div className="text-black">{bank.account_holder_name}</div>
+
+                    <div className="font-semibold text-black">Account Number:</div>
+                    <div className="text-black">{bank.account_number}</div>
+
+                    <div className="font-semibold text-black">IFSC:</div>
+                    <div className="text-black">{bank.ifsc}</div>
+
+                    <div className="font-semibold text-black">UPI ID:</div>
+                    <div className="text-black">{bank.upi_id}</div>
+
+                    <div className="font-semibold text-black">Phone Number:</div>
+                    <div className="text-black">{bank.phone_number}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setSelectedOwner(null)}
+              className="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            >
+              Close
+            </button>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
         {/* Owners Menu Page */}
-        {activePage === "menus" && (
-          <div className="bg-white p-6 shadow-lg rounded-xl">
-            <h2 className="text-2xl font-bold mb-4 text-black">Owners Menu</h2>
-            <div className="overflow-x-auto">
+{activePage === "menus" && (
+  <div className="bg-white p-6 shadow-lg rounded-xl">
+    <h2 className="text-2xl font-bold mb-4 text-black">Owners Menu</h2>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[600px] text-left border-collapse">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-3 text-black font-semibold">Owner Id</th>
+            <th className="p-3 text-black font-semibold">Email</th>
+            <th className="p-3 text-black font-semibold">Menu Items</th>
+          </tr>
+        </thead>
+        <tbody>
+          {owners.map((owner) => (
+            <tr
+              key={owner.id}
+              className="border-t hover:bg-gray-50 transition-all cursor-pointer"
+              onClick={async () => {
+                try {
+                  const { data: menuItems, error } = await supabase
+                    .from("menu_items")
+                    .select("id, name, description, price, category, image_url, created_at")
+                    .eq("owner_id", owner.id)
+                    .order("created_at", { ascending: false });
+
+                  if (error) throw error;
+
+                  setSelectedOwner({ ...owner, menuItems });
+                } catch (err) {
+                  console.error("Error fetching menu items:", err.message);
+                  setSelectedOwner({ ...owner, menuItems: [] });
+                }
+              }}
+            >
+              <td className="p-3 text-black">{owner.id}</td>
+              <td className="p-3 text-black">{owner.email}</td>
+              <td className="p-3 text-black">
+                {selectedOwner?.id === owner.id
+                  ? selectedOwner.menuItems.length
+                  : "-"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {selectedOwner && selectedOwner.menuItems && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+              <h3 className="text-xl font-bold text-black mb-2 sm:mb-0">
+                Menu Items for {selectedOwner.email}
+              </h3>
+              <button
+                onClick={() => setSelectedOwner(null)}
+                className="text-white bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="overflow-auto">
               <table className="w-full min-w-[600px] text-left border-collapse">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 sticky top-0">
                   <tr>
-                    <th className="p-3 text-black font-semibold">Owner Id</th>
-                    <th className="p-3 text-black font-semibold">Email</th>
-                    <th className="p-3 text-black font-semibold">Menu Items</th>
+                    <th className="p-2 text-black font-semibold">Image</th>
+                    <th className="p-2 text-black font-semibold">Item Name</th>
+                    <th className="p-2 text-black font-semibold">Description</th>
+                    <th className="p-2 text-black font-semibold">Price</th>
+                    <th className="p-2 text-black font-semibold">Category</th>
+                    <th className="p-2 text-black font-semibold">Created At</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {owners.map((owner) => (
-                    <tr
-                      key={owner.id}
-                      className="border-t hover:bg-gray-50 transition-all cursor-pointer"
-                      onClick={async () => {
-                        try {
-                          const { data: menuItems, error } = await supabase
-                            .from("menu_items")
-                            .select("id, name, description, price, category, image_url, created_at")
-                            .eq("owner_id", owner.id)
-                            .order("created_at", { ascending: false });
+                  {selectedOwner.menuItems.length > 0 ? (
+                    selectedOwner.menuItems.map((item) => {
+                      const { data } = supabase
+                        .storage
+                        .from("menu-images")
+                        .getPublicUrl(item.image_url);
 
-                          if (error) throw error;
+                      const imageUrl = data?.publicUrl || null;
 
-                          setSelectedOwner({ ...owner, menuItems });
-                        } catch (err) {
-                          console.error("Error fetching menu items:", err.message);
-                          setSelectedOwner({ ...owner, menuItems: [] });
-                        }
-                      }}
-                    >
-                      <td className="p-3 text-black">{owner.id}</td>
-                      <td className="p-3 text-black">{owner.email}</td>
-                      <td className="p-3 text-black">
-                        {selectedOwner?.id === owner.id
-                          ? selectedOwner.menuItems.length
-                          : "-"}
+                      return (
+                        <tr key={item.id} className="border-t hover:bg-gray-50 transition-all">
+                          <td className="p-2 text-black">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={item.name}
+                                className="w-12 h-12 object-cover rounded-md"
+                              />
+                            ) : (
+                              "No Image"
+                            )}
+                          </td>
+                          <td className="p-2 text-black">{item.name}</td>
+                          <td className="p-2 text-black">{item.description}</td>
+                          <td className="p-2 text-green-700 font-semibold">₹{item.price}</td>
+                          <td className="p-2 text-black">{item.category}</td>
+                          <td className="p-2 text-black">
+                            {new Date(item.created_at).toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td className="p-3 text-black text-center" colSpan={6}>
+                        No menu items available.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
-
-              {selectedOwner && selectedOwner.menuItems && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-auto">
-                  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-auto">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                      <h3 className="text-xl font-bold text-black mb-2 sm:mb-0">
-                        Menu Items for {selectedOwner.email}
-                      </h3>
-                      <button
-                        onClick={() => setSelectedOwner(null)}
-                        className="text-white bg-red-600 px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                      >
-                        Close
-                      </button>
-                    </div>
-
-                    <div className="overflow-auto">
-                      <table className="w-full min-w-[600px] text-left border-collapse">
-                        <thead className="bg-gray-100 sticky top-0">
-                          <tr>
-                            <th className="p-2 text-black font-semibold">Image</th>
-                            <th className="p-2 text-black font-semibold">Item Name</th>
-                            <th className="p-2 text-black font-semibold">Description</th>
-                            <th className="p-2 text-black font-semibold">Price</th>
-                            <th className="p-2 text-black font-semibold">Category</th>
-                            <th className="p-2 text-black font-semibold">Created At</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedOwner.menuItems.length > 0 ? (
-                            selectedOwner.menuItems.map((item) => {
-                              const { data } = supabase
-                                .storage
-                                .from("menu-images")
-                                .getPublicUrl(item.image_url);
-
-                              const imageUrl = data?.publicUrl || null;
-
-                              return (
-                                <tr key={item.id} className="border-t hover:bg-gray-50 transition-all">
-                                  <td className="p-2 text-black">
-                                    {imageUrl ? (
-                                      <img
-                                        src={imageUrl}
-                                        alt={item.name}
-                                        className="w-12 h-12 object-cover rounded-md"
-                                      />
-                                    ) : (
-                                      "No Image"
-                                    )}
-                                  </td>
-                                  <td className="p-2 text-black">{item.name}</td>
-                                  <td className="p-2 text-black">{item.description}</td>
-                                  <td className="p-2 text-green-700 font-semibold">₹{item.price}</td>
-                                  <td className="p-2 text-black">{item.category}</td>
-                                  <td className="p-2 text-black">
-                                    {new Date(item.created_at).toLocaleDateString("en-IN", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })}
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          ) : (
-                            <tr>
-                              <td className="p-3 text-black text-center" colSpan={6}>
-                                No menu items available.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
       </div>
     </div>
   );
