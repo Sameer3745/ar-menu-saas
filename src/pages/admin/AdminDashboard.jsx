@@ -148,7 +148,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, created_at")
+        .select("id, email, created_at, is_ordering_enabled")
         .order("created_at", { ascending: false });
       if (error) throw error;
       setOwners(data);
@@ -356,7 +356,7 @@ export default function AdminDashboard() {
             </div>
           </>
         )}
-
+        
         {/* Owners Page */}
 {activePage === "owners" && (
   <div className="bg-white p-6 shadow-lg rounded-xl">
@@ -368,6 +368,7 @@ export default function AdminDashboard() {
             <th className="p-3 text-black font-semibold">Owner ID</th>
             <th className="p-3 text-black font-semibold">Email ID</th>
             <th className="p-3 text-black font-semibold">Created At</th>
+            <th className="p-3 text-black font-semibold">Ordering status</th>
           </tr>
         </thead>
         <tbody>
@@ -376,7 +377,6 @@ export default function AdminDashboard() {
               key={owner.id}
               className="border-t hover:bg-gray-50 transition-all cursor-pointer"
               onClick={async () => {
-                // Fetch bank account details for this owner
                 const { data: bankAccounts, error } = await supabase
                   .from('bank_accounts')
                   .select('account_holder_name, account_number, ifsc, upi_id, phone_number')
@@ -403,6 +403,36 @@ export default function AdminDashboard() {
                   minute: "2-digit",
                 })}
               </td>
+
+              {/* 🔥 Added Ordering Toggle */}
+              <td className="p-3 text-black">
+  <select
+    value={owner.is_ordering_enabled ? "enabled" : "disabled"}
+    onClick={(e) => e.stopPropagation()} 
+    onChange={async (e) => {
+      e.stopPropagation();
+
+      const newValue = e.target.value === "enabled";
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_ordering_enabled: newValue })
+        .eq("id", owner.id);
+
+      if (!error) {
+        fetchOwners();
+      } else {
+        console.error("Error updating ordering:", error);
+      }
+    }}
+    className="border border-gray-300 rounded-lg px-2 py-1 bg-white text-black"
+  >
+    <option value="enabled">Enable</option>
+    <option value="disabled">Disable</option>
+  </select>
+</td>
+
+
             </tr>
           ))}
         </tbody>
@@ -413,7 +443,6 @@ export default function AdminDashboard() {
           <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-auto">
             <h3 className="text-xl font-bold text-black mb-4">Owner Details</h3>
 
-            {/* Owner Info Table */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div className="font-semibold text-black">Owner ID:</div>
               <div className="text-black">{selectedOwner.id}</div>
@@ -433,7 +462,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Bank Accounts Section */}
             {selectedOwner.bankAccounts && selectedOwner.bankAccounts.length > 0 && (
               <div>
                 <h4 className="text-lg font-semibold text-black mb-2">Bank Account Details</h4>
@@ -470,6 +498,9 @@ export default function AdminDashboard() {
     </div>
   </div>
 )}
+
+        
+
 
         {/* Owners Menu Page */}
 {activePage === "menus" && (

@@ -1,4 +1,4 @@
- import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import "@google/model-viewer";
@@ -9,6 +9,7 @@ export default function PublicMenu() {
   const location = useLocation();
 
   const [restaurantName, setRestaurantName] = useState("");
+  const [isOrderingEnabled, setIsOrderingEnabled] = useState(false);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
@@ -36,33 +37,42 @@ export default function PublicMenu() {
       setLoading(true);
       setErrorMsg("");
       try {
-        const { data, error } = await supabase
-          .from("menu_items")
-          .select("id, name, description, price, image_url, category, model_url")
-          .eq("owner_id", profileId)
-          .eq("is_public", true);
+        // 🔹 1️⃣ Fetch profile settings first
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("is_ordering_enabled")
+        .eq("id", profileId)
+        .single();
 
-        if (error) throw error;
+      if (profileError) throw profileError;
 
-        const withModels = (data || []).map((item) => ({
-          ...item,
-          url: item.image_url,
-        }));
+      setIsOrderingEnabled(profileData?.is_ordering_enabled ?? false);
 
-        setMenuItems(withModels);
-      } catch (error) {
-        console.error(error);
-        setErrorMsg("Failed to load menu items.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      // 🔹 2️⃣ Fetch menu items
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("id, name, description, price, image_url, category, model_url")
+        .eq("owner_id", profileId)
+        .eq("is_public", true);
 
-    if (profileId) fetchMenuItems();
-    else {
+      if (error) throw error;
+
+      const withModels = (data || []).map((item) => ({
+        ...item,
+        url: item.image_url,
+      }));
+
+      setMenuItems(withModels);
+
+    } catch (error) {
+      console.error(error);
+      setErrorMsg("Failed to load menu.");
+    } finally {
       setLoading(false);
-      setErrorMsg("Invalid profile ID.");
     }
+  };
+
+  if (profileId) fetchMenuItems();
   }, [profileId]);
 
   if (loading) return <p className="p-4 text-center">Loading menu...</p>;
@@ -252,24 +262,26 @@ export default function PublicMenu() {
           AR MENU
         </h1>
         <p className="text-center text-lg text-gray-200 mb-6">
-          Tap on any item to view its <span className="text-yellow-400 font-semibold">preview</span>.
+        Digitally-Ressponsive menu items <span className="text-yellow-400 font-semibold">preview</span>...
         </p>
         <hr className="border-t-2 border-dotted border-gray-400 mb-6" />
 
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={() => setShowCart(true)}
-            className="relative bg-yellow-400 text-black px-4 py-2 rounded-full flex items-center gap-2 font-bold shadow-lg"
-          >
-            <ShoppingCart size={22} />
-            Cart
-            {cart.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                {cart.length}
-              </span>
-            )}
-          </button>
-        </div>
+        {isOrderingEnabled && (
+  <div className="flex justify-center mb-6">
+    <button
+      onClick={() => setShowCart(true)}
+      className="relative bg-yellow-400 text-black px-4 py-2 rounded-full flex items-center gap-2 font-bold shadow-lg"
+    >
+      <ShoppingCart size={22} />
+      Cart
+      {cart.length > 0 && (
+        <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+          {cart.length}
+        </span>
+      )}
+    </button>
+  </div>
+)}
 
         {/* Menu Items */}
         {sortedCategories.map((category) => (
@@ -299,7 +311,11 @@ export default function PublicMenu() {
                       <tr
                         key={item.id}
                         className="hover:bg-white/10 transition text-sm sm:text-base cursor-pointer"
-                        onClick={() => setSelectedModel(item)}
+                        onClick={() => { 
+                          if (isOrderingEnabled) {
+                            setSelectedModel(item);
+                          }
+                        }}
                       >
                         <td className="py-2 px-4 relative">
                           <img
